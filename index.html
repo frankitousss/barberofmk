@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel del barbero · FMK Barbershop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <main class="envoltorio auth-envoltorio">
+    <div class="auth-caja">
+
+      <div class="auth-logo">
+        <img src="assets/logo.png" alt="FMK Barbershop">
+      </div>
+
+      <p class="modal-aviso">Acceso exclusivo para barberos de FMK Barbershop.</p>
+
+      <div class="tabs">
+        <button id="tab-login" class="activo" type="button">Iniciar sesión</button>
+        <button id="tab-registro" type="button">Registrarme</button>
+      </div>
+
+      <!-- LOGIN -->
+      <form id="form-login">
+        <div id="mensaje-login" class="mensaje"></div>
+        <div class="campo">
+          <label for="login-usuario">Email o DNI</label>
+          <input type="text" id="login-usuario" required autocomplete="username">
+        </div>
+        <div class="campo campo-password">
+          <label for="login-password">Contraseña</label>
+          <input type="password" id="login-password" required autocomplete="current-password">
+          <button type="button" class="btn-ojo" data-toggle="login-password" aria-label="Mostrar contraseña">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <button type="submit" class="btn btn--violeta" style="width:100%">Entrar</button>
+        <button type="button" class="link-olvide" id="btn-olvide">Olvidé mi contraseña</button>
+      </form>
+
+      <!-- OLVIDÉ MI CONTRASEÑA -->
+      <form id="form-olvide" class="oculto form-olvide">
+        <div id="mensaje-olvide" class="mensaje"></div>
+        <p class="modal-aviso" style="margin-top:0">Ingresá el email de tu cuenta y te mandamos un link para crear una contraseña nueva.</p>
+        <div class="campo">
+          <label for="olvide-email">Email</label>
+          <input type="email" id="olvide-email" required>
+        </div>
+        <button type="submit" class="btn btn--violeta" style="width:100%">Enviar link</button>
+        <button type="button" class="link-olvide" id="btn-volver-login">Volver a iniciar sesión</button>
+      </form>
+
+      <!-- REGISTRO -->
+      <form id="form-registro" class="oculto">
+        <div id="mensaje-registro" class="mensaje"></div>
+
+        <div class="campo">
+          <label for="reg-nombre">Nombre completo</label>
+          <input type="text" id="reg-nombre" required>
+        </div>
+
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="reg-email">Email</label>
+            <input type="email" id="reg-email" required autocomplete="email">
+          </div>
+          <div class="campo">
+            <label for="reg-dni">DNI</label>
+            <input type="text" id="reg-dni" required>
+          </div>
+        </div>
+
+        <div class="fila-campos">
+          <div class="campo campo-password">
+            <label for="reg-password">Contraseña</label>
+            <input type="password" id="reg-password" minlength="6" required autocomplete="new-password">
+            <button type="button" class="btn-ojo" data-toggle="reg-password" aria-label="Mostrar contraseña">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="campo campo-password">
+            <label for="reg-password-confirmar">Confirmar contraseña</label>
+            <input type="password" id="reg-password-confirmar" minlength="6" required autocomplete="new-password">
+            <button type="button" class="btn-ojo" data-toggle="reg-password-confirmar" aria-label="Mostrar contraseña">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="reg-username">Usuario (opcional)</label>
+          <input type="text" id="reg-username">
+        </div>
+
+        <button type="submit" class="btn btn--violeta" style="width:100%">Crear cuenta de barbero</button>
+      </form>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__interior">
+      <div class="footer__marca">
+        <img src="assets/logo.png" alt="FMK Barbershop">
+        <strong>FMK BARBERSHOP</strong>
+      </div>
+      <span class="footer__nota">© <span id="anio"></span> FMK Barbershop. Todos los derechos reservados.</span>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/auth.js"></script>
+  <script>document.getElementById('anio').textContent = new Date().getFullYear();</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva contraseña · FMK Barbershop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <main class="envoltorio auth-envoltorio">
+    <div class="auth-caja">
+      <div class="auth-logo">
+        <img src="assets/logo.png" alt="FMK Barbershop">
+      </div>
+
+      <h2 style="text-align:center">Crear nueva contraseña</h2>
+
+      <form id="form-reset">
+        <div id="mensaje-reset" class="mensaje"></div>
+
+        <div class="campo campo-password">
+          <label for="reset-password">Contraseña nueva</label>
+          <input type="password" id="reset-password" minlength="6" required autocomplete="new-password">
+          <button type="button" class="btn-ojo" data-toggle="reset-password" aria-label="Mostrar contraseña">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <div class="campo campo-password">
+          <label for="reset-password-confirmar">Confirmar contraseña</label>
+          <input type="password" id="reset-password-confirmar" minlength="6" required autocomplete="new-password">
+          <button type="button" class="btn-ojo" data-toggle="reset-password-confirmar" aria-label="Mostrar contraseña">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <button type="submit" class="btn btn--violeta" style="width:100%">Guardar contraseña</button>
+      </form>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__interior">
+      <div class="footer__marca">
+        <img src="assets/logo.png" alt="FMK Barbershop">
+        <strong>FMK BARBERSHOP</strong>
+      </div>
+      <span class="footer__nota">© <span id="anio"></span> FMK Barbershop. Todos los derechos reservados.</span>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script>
+    document.getElementById('anio').textContent = new Date().getFullYear();
+
+    document.querySelectorAll('.btn-ojo').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const input = document.getElementById(boton.dataset.toggle);
+        input.type = input.type === 'password' ? 'text' : 'password';
+      });
+    });
+
+    const formReset = document.getElementById('form-reset');
+    const mensajeReset = document.getElementById('mensaje-reset');
+
+    formReset.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = document.getElementById('reset-password').value;
+      const confirmar = document.getElementById('reset-password-confirmar').value;
+
+      if (password !== confirmar) {
+        mensajeReset.textContent = 'Las contraseñas no coinciden.';
+        mensajeReset.className = 'mensaje visible mensaje--error';
+        return;
+      }
+
+      const { error } = await supabaseClient.auth.updateUser({ password });
+
+      if (error) {
+        mensajeReset.textContent = 'No pudimos guardar la contraseña: ' + error.message;
+        mensajeReset.className = 'mensaje visible mensaje--error';
+        return;
+      }
+
+      mensajeReset.textContent = '¡Contraseña actualizada! Ya podés iniciar sesión.';
+      mensajeReset.className = 'mensaje visible mensaje--ok';
+      formReset.reset();
+      setTimeout(() => { window.location.href = 'index.html'; }, 1800);
+    });
+  </script>
+</body>
+</html>

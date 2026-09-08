@@ -1,0 +1,749 @@
+/* ============================================================
+   FMK BARBERSHOP — estilos compartidos
+   Paleta: negro profundo, blanco hueso (del logo) y violeta.
+   Tipografía: Anton (títulos, pisada fuerte tipo cartel) +
+   Space Grotesk (texto, limpio y legible).
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --negro: #0a0a0b;
+  --negro-panel: #141416;
+  --negro-borde: #232326;
+  --hueso: #f3efe6;
+  --hueso-tenue: #b9b6ac;
+  --violeta: #8b5cf6;
+  --violeta-fuerte: #6d28d9;
+  --violeta-suave: rgba(139, 92, 246, 0.14);
+  --exito: #4ade80;
+  --peligro: #f87171;
+
+  --fuente-display: 'Anton', 'Impact', sans-serif;
+  --fuente-texto: 'Space Grotesk', sans-serif;
+
+  --radio: 3px;
+  --sombra: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--negro);
+  color: var(--hueso);
+  font-family: var(--fuente-texto);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body::before {
+  /* textura sutil de grano para que el negro no quede plano */
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.035;
+  background-image: radial-gradient(#f3efe6 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+a { color: inherit; }
+
+h1, h2, h3, h4 {
+  font-family: var(--fuente-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  margin: 0 0 0.5em;
+  text-transform: uppercase;
+}
+
+h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); }
+h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); }
+h3 { font-size: 1.15rem; }
+
+p { color: var(--hueso-tenue); }
+
+button, input, select, textarea {
+  font-family: var(--fuente-texto);
+  font-size: 1rem;
+}
+
+/* ---------- Layout general ---------- */
+
+.envoltorio {
+  width: min(1080px, 92%);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+}
+
+main.envoltorio {
+  padding-block: 2.5rem 4rem;
+}
+
+/* ---------- Navbar ---------- */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(10, 10, 11, 0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--negro-borde);
+}
+
+.nav__interior {
+  width: min(1080px, 92%);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 0.7rem;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  margin-right: auto;
+}
+
+.marca img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.marca span {
+  display: none;
+}
+
+.nav__links {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.nav__link {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--hueso-tenue);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radio);
+  cursor: pointer;
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.nav__link:hover { color: var(--hueso); }
+
+.nav__link.activo {
+  color: var(--negro);
+  background: var(--violeta);
+  border-color: var(--violeta);
+  font-weight: 600;
+}
+
+.nav__salir {
+  border: 1px solid var(--negro-borde);
+  background: transparent;
+  color: var(--hueso-tenue);
+}
+
+.nav__salir:hover {
+  border-color: var(--peligro);
+  color: var(--peligro);
+}
+
+.nav__usuario {
+  font-size: 0.85rem;
+  color: var(--hueso-tenue);
+  padding-right: 0.4rem;
+  border-right: 1px solid var(--negro-borde);
+  margin-right: 0.4rem;
+}
+
+/* ---------- Botones ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.3rem;
+  border-radius: var(--radio);
+  border: 1px solid var(--negro-borde);
+  background: var(--negro-panel);
+  color: var(--hueso);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+
+.btn:hover { border-color: var(--hueso-tenue); }
+.btn:active { transform: scale(0.98); }
+
+.btn--violeta {
+  background: var(--violeta);
+  border-color: var(--violeta);
+  color: #0a0a0b;
+}
+
+.btn--violeta:hover {
+  background: var(--violeta-fuerte);
+  border-color: var(--violeta-fuerte);
+  color: var(--hueso);
+}
+
+.btn--fantasma {
+  background: transparent;
+}
+
+.btn--peligro {
+  border-color: var(--peligro);
+  color: var(--peligro);
+  background: transparent;
+}
+
+.btn--peligro:hover { background: rgba(248, 113, 113, 0.1); }
+
+.btn--chico {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------- Tarjetas / paneles ---------- */
+
+.panel {
+  background: var(--negro-panel);
+  border: 1px solid var(--negro-borde);
+  border-radius: var(--radio);
+  padding: 1.4rem;
+}
+
+.panel + .panel { margin-top: 1.2rem; }
+
+.panel__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.grilla {
+  display: grid;
+  gap: 1rem;
+}
+
+.grilla--2 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.grilla--3 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+/* ---------- Formularios ---------- */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.campo label {
+  font-size: 0.82rem;
+  color: var(--hueso-tenue);
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  background: var(--negro);
+  border: 1px solid var(--negro-borde);
+  color: var(--hueso);
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radio);
+  outline: none;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  border-color: var(--violeta);
+}
+
+.fila-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+/* ---------- Mensajes ---------- */
+
+.mensaje {
+  padding: 0.7rem 1rem;
+  border-radius: var(--radio);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  display: none;
+}
+
+.mensaje.visible { display: block; }
+.mensaje--error { background: rgba(248, 113, 113, 0.12); color: var(--peligro); border: 1px solid rgba(248, 113, 113, 0.4); }
+.mensaje--ok { background: rgba(74, 222, 128, 0.12); color: var(--exito); border: 1px solid rgba(74, 222, 128, 0.4); }
+
+/* ---------- Login / registro ---------- */
+
+.auth-envoltorio {
+  min-height: calc(100vh - 60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.auth-caja {
+  width: min(430px, 92vw);
+}
+
+.auth-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.6rem;
+}
+
+.auth-logo img { width: 220px; max-width: 80vw; }
+
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1.4rem;
+  border: 1px solid var(--negro-borde);
+  border-radius: var(--radio);
+  padding: 0.3rem;
+}
+
+.tabs button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--hueso-tenue);
+  padding: 0.6rem;
+  border-radius: 2px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tabs button.activo {
+  background: var(--violeta);
+  color: #0a0a0b;
+}
+
+.rol-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+}
+
+.rol-toggle button {
+  padding: 0.9rem;
+  border-radius: var(--radio);
+  border: 1px solid var(--negro-borde);
+  background: var(--negro);
+  color: var(--hueso-tenue);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.rol-toggle button.activo {
+  border-color: var(--violeta);
+  color: var(--hueso);
+  background: var(--violeta-suave);
+}
+
+.oculto { display: none !important; }
+
+/* ---------- Tarjeta de fidelidad ---------- */
+
+.tarjeta-fidelidad {
+  background: linear-gradient(155deg, var(--negro-panel), #0a0a0b 70%);
+  border: 1px solid var(--violeta);
+  border-radius: 10px;
+  padding: 1.6rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.tarjeta-fidelidad::after {
+  content: '';
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  right: -70px;
+  top: -90px;
+  background: var(--violeta);
+  opacity: 0.16;
+  border-radius: 50%;
+  filter: blur(10px);
+}
+
+.tarjeta-fidelidad__titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  position: relative;
+}
+
+.sellos-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6rem;
+  position: relative;
+}
+
+.sello {
+  aspect-ratio: 1;
+  border: 2px dashed var(--negro-borde);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fuente-display);
+  font-size: 1.1rem;
+  color: var(--negro-borde);
+}
+
+.sello.lleno {
+  border-style: solid;
+  border-color: var(--violeta);
+  background: var(--violeta);
+  color: #0a0a0b;
+}
+
+.tarjeta-fidelidad__stats {
+  display: flex;
+  gap: 1.6rem;
+  margin-top: 1.3rem;
+  position: relative;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat__num {
+  font-family: var(--fuente-display);
+  font-size: 1.7rem;
+  color: var(--hueso);
+}
+
+.stat__label {
+  font-size: 0.78rem;
+  color: var(--hueso-tenue);
+}
+
+/* ---------- Listas de turnos / horarios ---------- */
+
+.item-lista {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--negro-borde);
+  flex-wrap: wrap;
+}
+
+.item-lista:last-child { border-bottom: none; }
+
+.item-lista__info { display: flex; flex-direction: column; gap: 0.2rem; }
+.item-lista__info strong { font-size: 1rem; }
+.item-lista__info span { font-size: 0.82rem; color: var(--hueso-tenue); }
+
+.pill {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  border: 1px solid var(--negro-borde);
+  color: var(--hueso-tenue);
+  white-space: nowrap;
+}
+
+.pill--disponible { border-color: var(--exito); color: var(--exito); }
+.pill--reservado { border-color: var(--violeta); color: var(--violeta); }
+.pill--completado { border-color: var(--hueso-tenue); color: var(--hueso-tenue); }
+.pill--cancelado { border-color: var(--peligro); color: var(--peligro); }
+
+.vacio {
+  color: var(--hueso-tenue);
+  font-size: 0.92rem;
+  padding: 1.2rem 0;
+  text-align: center;
+  border: 1px dashed var(--negro-borde);
+  border-radius: var(--radio);
+}
+
+/* ---------- Horarios disponibles (cliente) ---------- */
+
+.horarios-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.horario-btn {
+  padding: 0.6rem 1rem;
+  border-radius: var(--radio);
+  border: 1px solid var(--negro-borde);
+  background: var(--negro);
+  color: var(--hueso);
+  cursor: pointer;
+}
+
+.horario-btn:hover { border-color: var(--violeta); }
+
+/* ---------- Tienda ---------- */
+
+.producto-card {
+  border: 1px solid var(--negro-borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--negro-panel);
+}
+
+.producto-card img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  background: var(--negro);
+  border-bottom: 1px solid var(--negro-borde);
+}
+
+.producto-card__cuerpo {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.producto-card__precio {
+  font-family: var(--fuente-display);
+  font-size: 1.3rem;
+  color: var(--violeta);
+  margin-top: auto;
+}
+
+/* ---------- Ficha de cliente encontrado ---------- */
+
+.ficha-cliente {
+  border: 1px solid var(--violeta);
+  border-radius: var(--radio);
+  padding: 1.2rem;
+  background: var(--violeta-suave);
+}
+
+/* ---------- Footer ---------- */
+
+.footer {
+  border-top: 1px solid var(--negro-borde);
+  margin-top: 3rem;
+}
+
+.footer__interior {
+  width: min(1080px, 92%);
+  margin: 0 auto;
+  padding: 2.2rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.footer__marca {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.footer__marca img { height: 32px; }
+
+.footer__marca strong {
+  font-family: var(--fuente-display);
+  letter-spacing: 0.03em;
+}
+
+.footer__nota {
+  color: var(--hueso-tenue);
+  font-size: 0.82rem;
+}
+
+/* ---------- Hero (index) ---------- */
+
+.hero {
+  text-align: center;
+  padding: 3.5rem 0 2.5rem;
+}
+
+.hero img.hero__logo {
+  width: min(520px, 88vw);
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  max-width: 46ch;
+  margin: 0 auto;
+  font-size: 1.05rem;
+}
+
+/* ---------- Utilidades ---------- */
+
+.centrado { text-align: center; }
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
+.texto-tenue { color: var(--hueso-tenue); font-size: 0.85rem; }
+
+@media (max-width: 620px) {
+  .nav__usuario { display: none; }
+  .item-lista { flex-direction: column; align-items: flex-start; }
+}
+
+/* ---------- Campo de contraseña con ojo mostrar/ocultar ---------- */
+
+.campo-password { position: relative; }
+
+.campo-password input { padding-right: 2.6rem; width: 100%; }
+
+.btn-ojo {
+  position: absolute;
+  right: 0.5rem;
+  top: 2.15rem;
+  background: transparent;
+  border: none;
+  color: var(--hueso-tenue);
+  cursor: pointer;
+  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.btn-ojo:hover { color: var(--hueso); }
+
+.btn-ojo svg { width: 20px; height: 20px; }
+
+/* ---------- Link "olvidé mi contraseña" ---------- */
+
+.link-olvide {
+  display: block;
+  text-align: center;
+  margin-top: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--hueso-tenue);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.link-olvide:hover { color: var(--violeta); text-decoration: underline; }
+
+/* ---------- Modal de autenticación (login/registro) ---------- */
+
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 11, 0.78);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1.2rem;
+}
+
+.modal-caja {
+  width: min(430px, 100%);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--negro-panel);
+  border: 1px solid var(--negro-borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 1.6rem;
+  position: relative;
+}
+
+.modal-cerrar {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  background: transparent;
+  border: none;
+  color: var(--hueso-tenue);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+}
+
+.modal-cerrar:hover { color: var(--hueso); }
+
+.modal-aviso {
+  font-size: 0.85rem;
+  color: var(--hueso-tenue);
+  text-align: center;
+  margin: 0 0 1.2rem;
+}
+
+/* ---------- Recuperar contraseña (dentro del modal / index) ---------- */
+
+.form-olvide { margin-top: 0.4rem; }
+
+/* ---------- Landing pública (clientesfmk) ---------- */
+
+.hero {
+  text-align: center;
+  padding: 3rem 0 2.5rem;
+}
+
+.hero p { max-width: 520px; margin: 0.6rem auto 0; }
+
+.hero .btn { margin-top: 1.4rem; }
+
+.candado-aviso {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px dashed var(--negro-borde);
+  border-radius: var(--radio);
+  color: var(--hueso-tenue);
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+
+.producto-card__acciones { padding: 0 1rem 1rem; }

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel del barbero · FMK Barbershop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav__interior">
+      <a class="marca" href="barbero.html">
+        <img src="assets/logo.png" alt="FMK Barbershop">
+      </a>
+      <div class="nav__links">
+        <span class="nav__usuario">Hola, <span id="nombre-usuario"></span></span>
+        <button class="nav__link activo" id="nav-turnos">Mis turnos</button>
+        <button class="nav__link" id="nav-horarios">Mis horarios</button>
+        <button class="nav__link" id="nav-buscar">Buscar cliente</button>
+        <button class="nav__link" id="nav-tienda">Tienda</button>
+        <button class="nav__link nav__salir" id="btn-salir">Cerrar sesión</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="envoltorio">
+
+    <!-- TURNOS -->
+    <section id="seccion-turnos">
+      <div class="panel">
+        <div class="panel__cabecera">
+          <h2>Turnos reservados</h2>
+        </div>
+        <div id="lista-turnos"></div>
+      </div>
+    </section>
+
+    <!-- HORARIOS -->
+    <section id="seccion-horarios" class="oculto">
+      <div class="panel">
+        <div class="panel__cabecera"><h2>Cargar horario disponible</h2></div>
+        <form id="form-horario">
+          <div id="mensaje-horario" class="mensaje"></div>
+          <div class="fila-campos">
+            <div class="campo">
+              <label for="horario-fecha">Fecha</label>
+              <input type="date" id="horario-fecha" required>
+            </div>
+            <div class="campo">
+              <label for="horario-hora">Hora</label>
+              <input type="time" id="horario-hora" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn--violeta">Agregar horario</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="panel__cabecera"><h2>Mis horarios cargados</h2></div>
+        <div id="lista-horarios"></div>
+      </div>
+    </section>
+
+    <!-- BUSCAR CLIENTE -->
+    <section id="seccion-buscar" class="oculto">
+      <div class="panel">
+        <div class="panel__cabecera"><h2>Buscar cliente</h2></div>
+        <form id="form-buscar">
+          <div class="fila-campos" style="align-items:end;">
+            <div class="campo">
+              <label for="buscar-input">DNI o usuario del cliente</label>
+              <input type="text" id="buscar-input" required>
+            </div>
+            <button type="submit" class="btn btn--violeta" style="height:fit-content">Buscar</button>
+          </div>
+        </form>
+        <div id="resultado-buscar"></div>
+      </div>
+    </section>
+
+    <!-- TIENDA -->
+    <section id="seccion-tienda" class="oculto">
+      <div class="panel">
+        <div class="panel__cabecera"><h2>Agregar producto</h2></div>
+        <form id="form-producto">
+          <div id="mensaje-producto" class="mensaje"></div>
+          <div class="campo">
+            <label for="producto-nombre">Nombre</label>
+            <input type="text" id="producto-nombre" required>
+          </div>
+          <div class="campo">
+            <label for="producto-descripcion">Descripción</label>
+            <textarea id="producto-descripcion" rows="2"></textarea>
+          </div>
+          <div class="fila-campos">
+            <div class="campo">
+              <label for="producto-precio">Precio</label>
+              <input type="number" step="0.01" min="0" id="producto-precio" required>
+            </div>
+            <div class="campo">
+              <label for="producto-stock">Stock</label>
+              <input type="number" min="0" id="producto-stock" value="0">
+            </div>
+          </div>
+          <div class="campo">
+            <label for="producto-imagen">URL de imagen (opcional)</label>
+            <input type="url" id="producto-imagen" placeholder="https://...">
+          </div>
+          <button type="submit" class="btn btn--violeta">Guardar producto</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="panel__cabecera"><h2>Productos de la tienda</h2></div>
+        <div id="lista-productos-barbero"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="footer__interior">
+      <div class="footer__marca">
+        <img src="assets/logo.png" alt="FMK Barbershop">
+        <strong>FMK BARBERSHOP</strong>
+      </div>
+      <span class="footer__nota">© <span id="anio"></span> FMK Barbershop. Todos los derechos reservados.</span>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/barbero.js"></script>
+  <script>document.getElementById('anio').textContent = new Date().getFullYear();</script>
+</body>
+</html>
