@@ -323,13 +323,18 @@ async function cargarHorarios() {
   const cont = document.getElementById('lista-horarios');
   cont.innerHTML = 'Cargando...';
 
-  // Solo mostramos los horarios TODAVÍA disponibles: los que ya se
-  // reservaron dejan de aparecer acá porque ya se ven en "Mis turnos".
+  const { fecha: hoy, hora: ahora } = fechaHoraActualLocal();
+
+  // Solo mostramos los horarios TODAVÍA disponibles y que todavía no
+  // pasaron: los reservados ya se ven en "Mis turnos", y los que ya
+  // pasaron desaparecen solos de la lista (siguen en la base, pero
+  // no se muestran ni se pueden volver a reservar).
   const { data: horarios, error } = await supabaseClient
     .from('horarios')
     .select('*')
     .eq('barbero_id', usuarioActual.id)
     .eq('disponible', true)
+    .or(`fecha.gt.${hoy},and(fecha.eq.${hoy},hora.gte.${ahora})`)
     .order('fecha', { ascending: true })
     .order('hora', { ascending: true });
 
@@ -378,7 +383,8 @@ async function cargarHorarios() {
         .eq('id', btn.dataset.borrarHorario);
 
       if (errorBorrar) {
-        alert('No se pudo borrar el horario: ' + errorBorrar.message);
+        console.error('Error al borrar horario:', errorBorrar);
+        alert('No se pudo borrar el horario: ' + errorBorrar.message + '\n\n(código: ' + (errorBorrar.code ?? 's/d') + ')');
         btn.disabled = false;
         return;
       }
@@ -442,16 +448,42 @@ document.getElementById('form-buscar').addEventListener('submit', async (e) => {
       <p class="texto-tenue">DNI: ${cliente.dni ?? '—'} · Usuario: ${cliente.username ?? '—'}</p>
       <p>Sellos actuales: <strong>${sellos} / 10</strong> · Cortes gratis disponibles: <strong>${cortesGratis}</strong></p>
       <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-top:0.8rem;">
-        <button class="btn btn--violeta" id="btn-agregar-sello">Agregar sello (corte hecho)</button>
+        <button class="btn btn--violeta" id="btn-agregar-sello">Cobrar y agregar sello</button>
         <button class="btn btn--fantasma" id="btn-usar-gratis" ${cortesGratis < 1 ? 'disabled' : ''}>Usar corte gratis</button>
       </div>
     </div>
   `;
 
+  // Este botón es para cortes que agendaste "por fuera" de la web
+  // (de palabra, por WhatsApp, etc.): abre el mismo formulario de
+  // cobro que usás al completar un turno reservado desde la página,
+  // para que también quede cargado en la Caja.
   document.getElementById('btn-agregar-sello').addEventListener('click', async () => {
+    const cobro = await abrirModalCobro({ profiles: { full_name: cliente.full_name } });
+    if (!cobro) return;
+
+    const montoTotal = cobro.monto + (cobro.compróTienda ? cobro.tiendaMonto : 0);
+    let descripcion = `Corte a ${cliente.full_name} (turno cargado a mano): ${cobro.servicios.join(', ')}`;
+    if (cobro.compróTienda && cobro.tiendaDetalle) {
+      descripcion += ` + Tienda: ${cobro.tiendaDetalle}`;
+    }
+
+    const { error: errorCaja } = await supabaseClient.from('caja_movimientos').insert({
+      barbero_id: usuarioActual.id,
+      tipo: 'ingreso',
+      monto: montoTotal,
+      descripcion,
+      cliente_id: cliente.id,
+    });
+
+    if (errorCaja) {
+      alert('No se pudo cargar en la caja: ' + errorCaja.message);
+    }
+
     const { data, error } = await supabaseClient.rpc('agregar_sello', { p_cliente_id: cliente.id });
     if (error) {
-      alert('No se pudo agregar el sello: ' + error.message);
+      alert('Se cargó en caja pero no se pudo agregar el sello: ' + error.message);
+      cargarCaja();
       return;
     }
     if (data.corte_gratis) {
@@ -461,6 +493,7 @@ document.getElementById('form-buscar').addEventListener('submit', async (e) => {
     } else {
       alert('Sello agregado.');
     }
+    cargarCaja();
     document.getElementById('form-buscar').requestSubmit();
   });
 
@@ -701,6 +734,15 @@ async function cargarCaja() {
 // ============================================================
 // Utilidades
 // ============================================================
+
+function fechaHoraActualLocal() {
+  const ahora = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return {
+    fecha: `${ahora.getFullYear()}-${pad(ahora.getMonth() + 1)}-${pad(ahora.getDate())}`,
+    hora: `${pad(ahora.getHours())}:${pad(ahora.getMinutes())}:${pad(ahora.getSeconds())}`,
+  };
+}
 
 function formatearFecha(fechaStr) {
   const [anio, mes, dia] = fechaStr.split('-');
