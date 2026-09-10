@@ -65,6 +65,36 @@ Las causas más comunes (y ya quedaron cubiertas en el código nuevo):
   o registrarse; después de entrar, retoma automáticamente lo que
   querías hacer.
 
+## 5. Actualización: caja, horarios y paginación
+
+Correr en el **SQL Editor** de Supabase (además de `schema.sql`, no
+lo reemplaza) el archivo nuevo `sql/actualizacion_caja.sql`. Agrega:
+
+- Un trigger que sincroniza `horarios.disponible` con el estado de
+  cada turno: cuando un cliente reserva, el horario pasa a "no
+  disponible" (por eso ya no aparece en "Mis horarios", solo en
+  "Mis turnos"); si el turno se cancela, el horario vuelve a estar
+  disponible para reservarse de nuevo.
+- La tabla `caja_movimientos`, para la nueva sección **Caja** del
+  panel del barbero.
+
+Cambios en `barbero.html` / `barbero.js` / `css/style.css`:
+
+- **Borrar horario**: el botón ahora avisa con un mensaje claro si
+  Supabase rechaza el borrado, en vez de fallar en silencio.
+- **Mis horarios**: solo se listan los horarios todavía disponibles
+  (los reservados ya se ven en "Mis turnos"), y se muestran de a 4
+  con paginación numerada (1, 2, 3...) abajo, en vez de una lista
+  larga.
+- **Caja**: al tocar "Completar y sellar" en un turno, ahora
+  aparece un formulario para cargar qué servicio(s) se hicieron, el
+  monto cobrado y, si corresponde, un producto de la tienda que
+  también compró el cliente. Eso genera un ingreso automático en la
+  Caja. En la pestaña "Caja" también se pueden anotar gastos propios
+  de la barbería (insumos, alquiler, etc.), y se ve el resumen de
+  ingresos, gastos y balance (puede dar negativo, es normal al
+  arrancar).
+
 ## Cosas para mejorar más adelante
 
 - El botón "Comprar" de la tienda hoy solo avisa que hay que

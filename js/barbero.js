@@ -3,6 +3,7 @@
 // ============================================================
 
 let usuarioActual = null;
+let turnosCache = [];
 
 // ---------- Verificación de sesión y rol ----------
 (async function iniciar() {
@@ -30,6 +31,7 @@ let usuarioActual = null;
   cargarTurnos();
   cargarHorarios();
   cargarProductos();
+  cargarCaja();
 })();
 
 document.getElementById('btn-salir').addEventListener('click', async () => {
@@ -38,7 +40,7 @@ document.getElementById('btn-salir').addEventListener('click', async () => {
 });
 
 // ---------- Navegación entre secciones ----------
-const secciones = ['turnos', 'horarios', 'buscar', 'tienda'];
+const secciones = ['turnos', 'horarios', 'buscar', 'tienda', 'caja'];
 
 function cambiarSeccion(nombre) {
   secciones.forEach((s) => {
@@ -50,6 +52,26 @@ function cambiarSeccion(nombre) {
 secciones.forEach((s) => {
   document.getElementById(`nav-${s}`).addEventListener('click', () => cambiarSeccion(s));
 });
+
+// ============================================================
+// PAGINACIÓN (helper genérico, se usa en horarios y caja)
+// ============================================================
+
+function crearPaginador({ contenedorId, total, porPagina, paginaActual, onCambiar }) {
+  const cont = document.getElementById(contenedorId);
+  cont.innerHTML = '';
+  const totalPaginas = Math.ceil(total / porPagina);
+  if (totalPaginas <= 1) return;
+
+  for (let i = 1; i <= totalPaginas; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'paginacion__btn' + (i === paginaActual ? ' paginacion__btn--activo' : '');
+    btn.textContent = i;
+    btn.addEventListener('click', () => onCambiar(i));
+    cont.appendChild(btn);
+  }
+}
 
 // ============================================================
 // TURNOS RESERVADOS POR CLIENTES
@@ -71,6 +93,8 @@ async function cargarTurnos() {
     return;
   }
 
+  turnosCache = turnos;
+
   if (!turnos.length) {
     cont.innerHTML = '<div class="vacio">Todavía no tenés turnos reservados.</div>';
     return;
@@ -88,7 +112,7 @@ async function cargarTurnos() {
       <div style="display:flex; align-items:center; gap:0.6rem;">
         <span class="pill pill--${t.estado}">${etiquetaEstado(t.estado)}</span>
         ${t.estado === 'reservado' ? `
-          <button class="btn btn--chico btn--violeta" data-completar="${t.id}" data-cliente="${t.cliente_id}">Completar y sellar</button>
+          <button class="btn btn--chico btn--violeta" data-completar="${t.id}">Completar y sellar</button>
           <button class="btn btn--chico btn--peligro" data-cancelar="${t.id}">Cancelar</button>
         ` : ''}
       </div>
@@ -97,25 +121,51 @@ async function cargarTurnos() {
   });
 
   cont.querySelectorAll('[data-completar]').forEach((btn) => {
-    btn.addEventListener('click', () => completarTurno(btn.dataset.completar, btn.dataset.cliente));
+    btn.addEventListener('click', () => {
+      const turno = turnosCache.find((t) => t.id === btn.dataset.completar);
+      if (turno) completarTurno(turno);
+    });
   });
   cont.querySelectorAll('[data-cancelar]').forEach((btn) => {
     btn.addEventListener('click', () => cancelarTurno(btn.dataset.cancelar));
   });
 }
 
-async function completarTurno(turnoId, clienteId) {
+async function completarTurno(turno) {
+  // Antes de marcar el turno como completado, pedimos qué se cobró.
+  const cobro = await abrirModalCobro(turno);
+  if (!cobro) return; // el barbero cerró el modal sin confirmar, no se toca el turno
+
   const { error: errorTurno } = await supabaseClient
     .from('turnos')
     .update({ estado: 'completado' })
-    .eq('id', turnoId);
+    .eq('id', turno.id);
 
   if (errorTurno) {
     alert('No se pudo completar el turno: ' + errorTurno.message);
     return;
   }
 
-  const { data, error } = await supabaseClient.rpc('agregar_sello', { p_cliente_id: clienteId });
+  const montoTotal = cobro.monto + (cobro.compróTienda ? cobro.tiendaMonto : 0);
+  let descripcion = `Corte a ${turno.profiles?.full_name ?? 'cliente'}: ${cobro.servicios.join(', ')}`;
+  if (cobro.compróTienda && cobro.tiendaDetalle) {
+    descripcion += ` + Tienda: ${cobro.tiendaDetalle}`;
+  }
+
+  const { error: errorCaja } = await supabaseClient.from('caja_movimientos').insert({
+    barbero_id: usuarioActual.id,
+    tipo: 'ingreso',
+    monto: montoTotal,
+    descripcion,
+    turno_id: turno.id,
+    cliente_id: turno.cliente_id,
+  });
+
+  if (errorCaja) {
+    alert('El turno se completó pero no se pudo cargar en la caja: ' + errorCaja.message);
+  }
+
+  const { data, error } = await supabaseClient.rpc('agregar_sello', { p_cliente_id: turno.cliente_id });
 
   if (error) {
     alert('El turno se completó pero falló el sello: ' + error.message);
@@ -128,17 +178,119 @@ async function completarTurno(turnoId, clienteId) {
   }
 
   cargarTurnos();
+  cargarCaja();
 }
 
 async function cancelarTurno(turnoId) {
   if (!confirm('¿Cancelar este turno?')) return;
-  await supabaseClient.from('turnos').update({ estado: 'cancelado' }).eq('id', turnoId);
+
+  const { error } = await supabaseClient.from('turnos').update({ estado: 'cancelado' }).eq('id', turnoId);
+
+  if (error) {
+    alert('No se pudo cancelar el turno: ' + error.message);
+    return;
+  }
+
+  // Al cancelar, el horario vuelve a quedar disponible (lo hace el
+  // trigger de la base), así que también refrescamos esa lista.
   cargarTurnos();
+  cargarHorarios();
+}
+
+// ============================================================
+// MODAL DE COBRO — se abre al completar un turno
+// ============================================================
+
+function abrirModalCobro(turno) {
+  return new Promise((resolve) => {
+    const fondo = document.createElement('div');
+    fondo.className = 'modal-fondo';
+    fondo.innerHTML = `
+      <div class="modal-caja modal-cobro">
+        <button type="button" class="modal-cerrar" aria-label="Cerrar">&times;</button>
+        <h2 style="margin-top:0;">Cobrar a ${turno.profiles?.full_name ?? 'cliente'}</h2>
+        <p class="modal-aviso">Cargá lo que le cobraste para sumarlo a la caja.</p>
+        <form id="form-cobro">
+          <div id="mensaje-cobro" class="mensaje"></div>
+          <div class="campo">
+            <label>Servicios realizados</label>
+            <div class="servicios-grilla">
+              <label class="campo-check"><input type="checkbox" name="servicio" value="Corte"> Corte</label>
+              <label class="campo-check"><input type="checkbox" name="servicio" value="Barba"> Barba</label>
+              <label class="campo-check"><input type="checkbox" name="servicio" value="Cejas"> Cejas</label>
+              <label class="campo-check"><input type="checkbox" name="servicio" value="Color"> Color</label>
+              <label class="campo-check"><input type="checkbox" name="servicio" value="Otro"> Otro</label>
+            </div>
+          </div>
+          <div class="campo">
+            <label for="cobro-monto">Monto cobrado por el servicio</label>
+            <input type="number" step="0.01" min="0" id="cobro-monto" required>
+          </div>
+          <label class="campo-check" for="cobro-tienda-check">
+            <input type="checkbox" id="cobro-tienda-check">
+            También compró algo de la tienda
+          </label>
+          <div id="cobro-tienda-campos" class="oculto">
+            <div class="fila-campos">
+              <div class="campo">
+                <label for="cobro-tienda-detalle">¿Qué compró?</label>
+                <input type="text" id="cobro-tienda-detalle" placeholder="Ej: cera, shampoo">
+              </div>
+              <div class="campo">
+                <label for="cobro-tienda-monto">Monto de esa compra</label>
+                <input type="number" step="0.01" min="0" id="cobro-tienda-monto">
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn--violeta" style="width:100%;">Confirmar y sellar</button>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(fondo);
+
+    const cerrar = (resultado) => {
+      fondo.remove();
+      resolve(resultado);
+    };
+
+    fondo.querySelector('.modal-cerrar').addEventListener('click', () => cerrar(null));
+    fondo.addEventListener('click', (e) => {
+      if (e.target === fondo) cerrar(null);
+    });
+
+    const checkTienda = fondo.querySelector('#cobro-tienda-check');
+    const camposTienda = fondo.querySelector('#cobro-tienda-campos');
+    checkTienda.addEventListener('change', () => {
+      camposTienda.classList.toggle('oculto', !checkTienda.checked);
+    });
+
+    fondo.querySelector('#form-cobro').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const mensaje = fondo.querySelector('#mensaje-cobro');
+      const servicios = Array.from(fondo.querySelectorAll('input[name="servicio"]:checked')).map((c) => c.value);
+
+      if (!servicios.length) {
+        mensaje.textContent = 'Marcá al menos un servicio.';
+        mensaje.className = 'mensaje visible mensaje--error';
+        return;
+      }
+
+      const monto = parseFloat(fondo.querySelector('#cobro-monto').value) || 0;
+      const compróTienda = checkTienda.checked;
+      const tiendaDetalle = fondo.querySelector('#cobro-tienda-detalle').value.trim();
+      const tiendaMonto = parseFloat(fondo.querySelector('#cobro-tienda-monto').value) || 0;
+
+      cerrar({ servicios, monto, compróTienda, tiendaDetalle, tiendaMonto });
+    });
+  });
 }
 
 // ============================================================
 // HORARIOS DEL BARBERO
 // ============================================================
+
+let horariosPagina = 1;
+const HORARIOS_POR_PAGINA = 4;
 
 const formHorario = document.getElementById('form-horario');
 
@@ -163,6 +315,7 @@ formHorario.addEventListener('submit', async (e) => {
   mensaje.textContent = 'Horario cargado.';
   mensaje.className = 'mensaje visible mensaje--ok';
   formHorario.reset();
+  horariosPagina = 1;
   cargarHorarios();
 });
 
@@ -170,10 +323,13 @@ async function cargarHorarios() {
   const cont = document.getElementById('lista-horarios');
   cont.innerHTML = 'Cargando...';
 
+  // Solo mostramos los horarios TODAVÍA disponibles: los que ya se
+  // reservaron dejan de aparecer acá porque ya se ven en "Mis turnos".
   const { data: horarios, error } = await supabaseClient
     .from('horarios')
     .select('*')
     .eq('barbero_id', usuarioActual.id)
+    .eq('disponible', true)
     .order('fecha', { ascending: true })
     .order('hora', { ascending: true });
 
@@ -183,12 +339,19 @@ async function cargarHorarios() {
   }
 
   if (!horarios.length) {
-    cont.innerHTML = '<div class="vacio">Todavía no cargaste horarios.</div>';
+    cont.innerHTML = '<div class="vacio">Todavía no tenés horarios disponibles cargados.</div>';
+    document.getElementById('paginacion-horarios').innerHTML = '';
     return;
   }
 
+  const totalPaginas = Math.max(1, Math.ceil(horarios.length / HORARIOS_POR_PAGINA));
+  if (horariosPagina > totalPaginas) horariosPagina = totalPaginas;
+
+  const inicio = (horariosPagina - 1) * HORARIOS_POR_PAGINA;
+  const pagina = horarios.slice(inicio, inicio + HORARIOS_POR_PAGINA);
+
   cont.innerHTML = '';
-  horarios.forEach((h) => {
+  pagina.forEach((h) => {
     const fila = document.createElement('div');
     fila.className = 'item-lista';
     fila.innerHTML = `
@@ -197,7 +360,7 @@ async function cargarHorarios() {
         <span>${h.hora.slice(0, 5)} hs</span>
       </div>
       <div style="display:flex; align-items:center; gap:0.6rem;">
-        <span class="pill pill--${h.disponible ? 'disponible' : 'reservado'}">${h.disponible ? 'Disponible' : 'Reservado'}</span>
+        <span class="pill pill--disponible">Disponible</span>
         <button class="btn btn--chico btn--peligro" data-borrar-horario="${h.id}">Borrar</button>
       </div>
     `;
@@ -207,9 +370,32 @@ async function cargarHorarios() {
   cont.querySelectorAll('[data-borrar-horario]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (!confirm('¿Borrar este horario?')) return;
-      await supabaseClient.from('horarios').delete().eq('id', btn.dataset.borrarHorario);
+
+      btn.disabled = true;
+      const { error: errorBorrar } = await supabaseClient
+        .from('horarios')
+        .delete()
+        .eq('id', btn.dataset.borrarHorario);
+
+      if (errorBorrar) {
+        alert('No se pudo borrar el horario: ' + errorBorrar.message);
+        btn.disabled = false;
+        return;
+      }
+
       cargarHorarios();
     });
+  });
+
+  crearPaginador({
+    contenedorId: 'paginacion-horarios',
+    total: horarios.length,
+    porPagina: HORARIOS_POR_PAGINA,
+    paginaActual: horariosPagina,
+    onCambiar: (p) => {
+      horariosPagina = p;
+      cargarHorarios();
+    },
   });
 }
 
@@ -379,6 +565,136 @@ async function cargarProductos() {
       await supabaseClient.from('productos').delete().eq('id', btn.dataset.borrarProducto);
       cargarProductos();
     });
+  });
+}
+
+// ============================================================
+// CAJA — ingresos (de los cortes/tienda) y gastos
+// ============================================================
+
+let cajaPagina = 1;
+const CAJA_POR_PAGINA = 6;
+
+const formGasto = document.getElementById('form-gasto');
+
+formGasto.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const monto = parseFloat(document.getElementById('gasto-monto').value);
+  const descripcion = document.getElementById('gasto-descripcion').value.trim();
+  const mensaje = document.getElementById('mensaje-gasto');
+
+  const { error } = await supabaseClient.from('caja_movimientos').insert({
+    barbero_id: usuarioActual.id,
+    tipo: 'egreso',
+    monto,
+    descripcion,
+  });
+
+  if (error) {
+    mensaje.textContent = 'No se pudo guardar el gasto: ' + error.message;
+    mensaje.className = 'mensaje visible mensaje--error';
+    return;
+  }
+
+  mensaje.textContent = 'Gasto agregado.';
+  mensaje.className = 'mensaje visible mensaje--ok';
+  formGasto.reset();
+  cajaPagina = 1;
+  cargarCaja();
+});
+
+async function cargarCaja() {
+  const resumenCont = document.getElementById('caja-resumen');
+  const listaCont = document.getElementById('lista-caja');
+  listaCont.innerHTML = 'Cargando...';
+
+  const { data: movimientos, error } = await supabaseClient
+    .from('caja_movimientos')
+    .select('*')
+    .eq('barbero_id', usuarioActual.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    listaCont.innerHTML = `<div class="mensaje mensaje--error visible">${error.message}</div>`;
+    return;
+  }
+
+  const ingresos = movimientos.filter((m) => m.tipo === 'ingreso').reduce((acc, m) => acc + Number(m.monto), 0);
+  const egresos = movimientos.filter((m) => m.tipo === 'egreso').reduce((acc, m) => acc + Number(m.monto), 0);
+  const balance = ingresos - egresos;
+
+  resumenCont.innerHTML = `
+    <div class="caja-tarjeta caja-tarjeta--positivo">
+      <span>Ingresos</span>
+      <strong>$${ingresos.toLocaleString('es-AR')}</strong>
+    </div>
+    <div class="caja-tarjeta caja-tarjeta--negativo">
+      <span>Gastos</span>
+      <strong>$${egresos.toLocaleString('es-AR')}</strong>
+    </div>
+    <div class="caja-tarjeta ${balance >= 0 ? 'caja-tarjeta--positivo' : 'caja-tarjeta--negativo'}">
+      <span>Balance</span>
+      <strong>$${balance.toLocaleString('es-AR')}</strong>
+    </div>
+  `;
+
+  if (!movimientos.length) {
+    listaCont.innerHTML = '<div class="vacio">Todavía no hay movimientos en la caja.</div>';
+    document.getElementById('paginacion-caja').innerHTML = '';
+    return;
+  }
+
+  const totalPaginas = Math.max(1, Math.ceil(movimientos.length / CAJA_POR_PAGINA));
+  if (cajaPagina > totalPaginas) cajaPagina = totalPaginas;
+
+  const inicio = (cajaPagina - 1) * CAJA_POR_PAGINA;
+  const pagina = movimientos.slice(inicio, inicio + CAJA_POR_PAGINA);
+
+  listaCont.innerHTML = '';
+  pagina.forEach((m) => {
+    const signo = m.tipo === 'ingreso' ? '+' : '-';
+    const fila = document.createElement('div');
+    fila.className = 'item-lista';
+    fila.innerHTML = `
+      <div class="item-lista__info">
+        <strong>${m.descripcion}</strong>
+        <span>${new Date(m.created_at).toLocaleDateString('es-AR')}</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:0.6rem;">
+        <span class="pill pill--${m.tipo}">${signo}$${Number(m.monto).toLocaleString('es-AR')}</span>
+        <button class="btn btn--chico btn--peligro" data-borrar-mov="${m.id}">Borrar</button>
+      </div>
+    `;
+    listaCont.appendChild(fila);
+  });
+
+  listaCont.querySelectorAll('[data-borrar-mov]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('¿Borrar este movimiento de caja?')) return;
+
+      const { error: errorBorrar } = await supabaseClient
+        .from('caja_movimientos')
+        .delete()
+        .eq('id', btn.dataset.borrarMov);
+
+      if (errorBorrar) {
+        alert('No se pudo borrar el movimiento: ' + errorBorrar.message);
+        return;
+      }
+
+      cargarCaja();
+    });
+  });
+
+  crearPaginador({
+    contenedorId: 'paginacion-caja',
+    total: movimientos.length,
+    porPagina: CAJA_POR_PAGINA,
+    paginaActual: cajaPagina,
+    onCambiar: (p) => {
+      cajaPagina = p;
+      cargarCaja();
+    },
   });
 }
 

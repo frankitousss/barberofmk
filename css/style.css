@@ -719,6 +719,101 @@ main.envoltorio {
   margin: 0 0 1.2rem;
 }
 
+/* ---------- Paginación ---------- */
+
+.paginacion {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.paginacion__btn {
+  min-width: 2.2rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radio);
+  border: 1px solid var(--negro-borde);
+  background: var(--negro-panel);
+  color: var(--hueso-tenue);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.paginacion__btn:hover { border-color: var(--hueso-tenue); color: var(--hueso); }
+
+.paginacion__btn--activo {
+  background: var(--violeta);
+  border-color: var(--violeta);
+  color: #0a0a0b;
+}
+
+/* ---------- Caja ---------- */
+
+.caja-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.caja-tarjeta {
+  background: var(--negro);
+  border: 1px solid var(--negro-borde);
+  border-radius: var(--radio);
+  padding: 1rem 1.2rem;
+  text-align: center;
+}
+
+.caja-tarjeta span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--hueso-tenue);
+  margin-bottom: 0.3rem;
+}
+
+.caja-tarjeta strong {
+  font-size: 1.4rem;
+  font-family: var(--fuente-display);
+  letter-spacing: 0.5px;
+}
+
+.caja-tarjeta--positivo strong { color: var(--exito); }
+.caja-tarjeta--negativo strong { color: var(--peligro); }
+
+.pill--ingreso { border-color: var(--exito); color: var(--exito); }
+.pill--egreso { border-color: var(--peligro); color: var(--peligro); }
+
+/* ---------- Modal de cobro (al completar un turno) ---------- */
+
+.modal-cobro .campo-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  font-size: 0.9rem;
+}
+
+.modal-cobro .campo-check input {
+  width: auto;
+  accent-color: var(--violeta);
+}
+
+.servicios-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.servicios-grilla .campo-check {
+  background: var(--negro);
+  border: 1px solid var(--negro-borde);
+  border-radius: var(--radio);
+  padding: 0.5rem 0.7rem;
+  margin-bottom: 0;
+}
+
 /* ---------- Recuperar contraseña (dentro del modal / index) ---------- */
 
 .form-olvide { margin-top: 0.4rem; }
