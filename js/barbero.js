@@ -406,6 +406,196 @@ async function cargarHorarios() {
 }
 
 // ============================================================
+// CARGA MASIVA DE HORARIOS
+// ============================================================
+// El barbero elige un rango de fechas, los días de la semana, la
+// apertura, el cierre y el intervalo, y se generan todos los
+// horarios de una sola vez. No se repiten los que ya existen
+// (disponibles o ya reservados) y no se generan horarios pasados.
+
+const MASIVO_MAX_HORARIOS = 3000;
+const MASIVO_LOTE = 500;
+
+const formMasivo = document.getElementById('form-masivo');
+const masivoResumen = document.getElementById('masivo-resumen');
+
+function aMinutos(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function deMinutos(min) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
+}
+
+function aFechaISO(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// Devuelve { slots, error }. Cada slot es { fecha: 'YYYY-MM-DD', hora: 'HH:MM' }.
+// Nota: el último horario es el que termina justo al cierre. Con
+// 10:00 a 20:00 cada 30 min se generan 10:00, 10:30 ... 19:30.
+function generarSlots() {
+  const desde = document.getElementById('masivo-desde').value;
+  const hasta = document.getElementById('masivo-hasta').value;
+  const apertura = document.getElementById('masivo-apertura').value;
+  const cierre = document.getElementById('masivo-cierre').value;
+  const intervalo = parseInt(document.getElementById('masivo-intervalo').value, 10);
+  const dias = Array.from(document.querySelectorAll('input[name="dia-semana"]:checked')).map((c) => Number(c.value));
+
+  if (!desde || !hasta || !apertura || !cierre) return { slots: [], error: null };
+  if (hasta < desde) return { slots: [], error: 'La fecha final no puede ser anterior a la inicial.' };
+  if (!dias.length) return { slots: [], error: 'Elegí al menos un día de la semana.' };
+  if (aMinutos(cierre) <= aMinutos(apertura)) return { slots: [], error: 'El cierre tiene que ser posterior a la apertura.' };
+
+  const minApertura = aMinutos(apertura);
+  const minCierre = aMinutos(cierre);
+  const horas = [];
+  for (let t = minApertura; t + intervalo <= minCierre; t += intervalo) horas.push(deMinutos(t));
+
+  if (!horas.length) return { slots: [], error: 'El intervalo es más largo que el horario de atención.' };
+
+  const { fecha: hoy, hora: ahora } = fechaHoraActualLocal();
+  const ahoraHHMM = ahora.slice(0, 5);
+
+  const [a1, m1, d1] = desde.split('-').map(Number);
+  const [a2, m2, d2] = hasta.split('-').map(Number);
+  const cursor = new Date(a1, m1 - 1, d1);
+  const fin = new Date(a2, m2 - 1, d2);
+
+  const slots = [];
+  while (cursor <= fin) {
+    if (dias.includes(cursor.getDay())) {
+      const fecha = aFechaISO(cursor);
+      if (fecha >= hoy) {
+        horas.forEach((hora) => {
+          // Hoy no se generan horarios que ya pasaron
+          if (fecha === hoy && hora < ahoraHHMM) return;
+          slots.push({ fecha, hora });
+        });
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+    if (slots.length > MASIVO_MAX_HORARIOS) {
+      return { slots: [], error: `Son demasiados horarios (más de ${MASIVO_MAX_HORARIOS}). Acortá el rango de fechas.` };
+    }
+  }
+
+  return { slots, error: null };
+}
+
+function actualizarResumenMasivo() {
+  const { slots, error } = generarSlots();
+  if (error) {
+    masivoResumen.textContent = error;
+  } else if (!slots.length) {
+    masivoResumen.textContent = '';
+  } else {
+    masivoResumen.textContent = `Se van a generar hasta ${slots.length} horarios (los que ya existan se saltean).`;
+  }
+}
+
+formMasivo.addEventListener('input', actualizarResumenMasivo);
+formMasivo.addEventListener('change', actualizarResumenMasivo);
+
+// Trae TODOS los horarios del barbero en el rango (disponibles y
+// reservados) para no duplicarlos. Se pagina porque Supabase
+// devuelve como máximo 1000 filas por consulta.
+async function traerHorariosExistentes(desde, hasta) {
+  const existentes = new Set();
+  const TAM = 1000;
+  let desdeFila = 0;
+
+  while (true) {
+    const { data, error } = await supabaseClient
+      .from('horarios')
+      .select('fecha, hora')
+      .eq('barbero_id', usuarioActual.id)
+      .gte('fecha', desde)
+      .lte('fecha', hasta)
+      .order('fecha', { ascending: true })
+      .order('hora', { ascending: true })
+      .range(desdeFila, desdeFila + TAM - 1);
+
+    if (error) throw error;
+    data.forEach((h) => existentes.add(`${h.fecha}|${h.hora.slice(0, 5)}`));
+    if (data.length < TAM) break;
+    desdeFila += TAM;
+  }
+
+  return existentes;
+}
+
+formMasivo.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const mensaje = document.getElementById('mensaje-masivo');
+  const boton = document.getElementById('btn-masivo');
+
+  const mostrar = (texto, tipo) => {
+    mensaje.textContent = texto;
+    mensaje.className = `mensaje visible mensaje--${tipo}`;
+  };
+
+  const { slots, error: errorValidacion } = generarSlots();
+  if (errorValidacion) {
+    mostrar(errorValidacion, 'error');
+    return;
+  }
+  if (!slots.length) {
+    mostrar('Con esa configuración no hay horarios para generar (revisá las fechas y los días elegidos).', 'error');
+    return;
+  }
+
+  boton.disabled = true;
+  boton.textContent = 'Generando...';
+
+  try {
+    const desde = slots[0].fecha;
+    const hasta = slots[slots.length - 1].fecha;
+    const existentes = await traerHorariosExistentes(desde, hasta);
+
+    const nuevos = slots.filter((s) => !existentes.has(`${s.fecha}|${s.hora}`));
+    const repetidos = slots.length - nuevos.length;
+
+    if (!nuevos.length) {
+      mostrar(`No se cargó nada: los ${slots.length} horarios ya existían.`, 'error');
+      return;
+    }
+
+    const filas = nuevos.map((s) => ({
+      barbero_id: usuarioActual.id,
+      fecha: s.fecha,
+      hora: s.hora,
+    }));
+
+    for (let i = 0; i < filas.length; i += MASIVO_LOTE) {
+      const lote = filas.slice(i, i + MASIVO_LOTE);
+      // ignoreDuplicates es una red de seguridad extra: si un horario
+      // se coló entre la consulta y el insert, se saltea sin fallar.
+      const { error } = await supabaseClient
+        .from('horarios')
+        .upsert(lote, { onConflict: 'barbero_id,fecha,hora', ignoreDuplicates: true });
+      if (error) throw error;
+    }
+
+    let texto = `Se cargaron ${nuevos.length} horarios nuevos.`;
+    if (repetidos) texto += ` Se saltearon ${repetidos} que ya existían.`;
+    mostrar(texto, 'ok');
+
+    horariosPagina = 1;
+    cargarHorarios();
+  } catch (err) {
+    console.error('Error en carga masiva:', err);
+    mostrar('No se pudieron generar los horarios: ' + (err.message ?? err), 'error');
+  } finally {
+    boton.disabled = false;
+    boton.textContent = 'Generar horarios';
+  }
+});
+
+// ============================================================
 // BUSCAR CLIENTE POR DNI O USUARIO
 // ============================================================
 

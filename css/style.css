@@ -842,3 +842,29 @@ main.envoltorio {
 }
 
 .producto-card__acciones { padding: 0 1rem 1rem; }
+
+
+/* ---------- Carga masiva de horarios ---------- */
+
+.dias-grilla {
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  margin-bottom: 0.4rem;
+}
+
+.dias-grilla .campo-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.dias-grilla .campo-check input {
+  width: auto;
+  accent-color: var(--violeta);
+}
+
+#form-masivo .texto-tenue {
+  margin: 0.4rem 0 1rem;
+  font-size: 0.9rem;
+}

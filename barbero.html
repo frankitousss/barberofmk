@@ -40,7 +40,62 @@
     <!-- HORARIOS -->
     <section id="seccion-horarios" class="oculto">
       <div class="panel">
-        <div class="panel__cabecera"><h2>Cargar horario disponible</h2></div>
+        <div class="panel__cabecera"><h2>Generar horarios automáticamente</h2></div>
+        <form id="form-masivo">
+          <div id="mensaje-masivo" class="mensaje"></div>
+          <div class="fila-campos">
+            <div class="campo">
+              <label for="masivo-desde">Desde</label>
+              <input type="date" id="masivo-desde" required>
+            </div>
+            <div class="campo">
+              <label for="masivo-hasta">Hasta</label>
+              <input type="date" id="masivo-hasta" required>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label>Días de la semana</label>
+            <div class="servicios-grilla dias-grilla">
+              <label class="campo-check"><input type="checkbox" name="dia-semana" value="1" checked> Lun</label>
+              <label class="campo-check"><input type="checkbox" name="dia-semana" value="2" checked> Mar</label>
+              <label class="campo-check"><input type="checkbox" name="dia-semana" value="3" checked> Mié</label>
+              <label class="campo-check"><input type="checkbox" name="dia-semana" value="4" checked> Jue</label>
+              <label class="campo-check"><input type="checkbox" name="dia-semana" value="5" checked> Vie</label>
+              <label class="campo-check"><input type="checkbox" name="dia-semana" value="6" checked> Sáb</label>
+              <label class="campo-check"><input type="checkbox" name="dia-semana" value="0"> Dom</label>
+            </div>
+          </div>
+
+          <div class="fila-campos">
+            <div class="campo">
+              <label for="masivo-apertura">Apertura</label>
+              <input type="time" id="masivo-apertura" value="10:00" required>
+            </div>
+            <div class="campo">
+              <label for="masivo-cierre">Cierre</label>
+              <input type="time" id="masivo-cierre" value="20:00" required>
+            </div>
+            <div class="campo">
+              <label for="masivo-intervalo">Cada cuántos minutos</label>
+              <select id="masivo-intervalo">
+                <option value="15">15 minutos</option>
+                <option value="20">20 minutos</option>
+                <option value="30" selected>30 minutos</option>
+                <option value="40">40 minutos</option>
+                <option value="45">45 minutos</option>
+                <option value="60">60 minutos</option>
+              </select>
+            </div>
+          </div>
+
+          <p id="masivo-resumen" class="texto-tenue"></p>
+          <button type="submit" class="btn btn--violeta" id="btn-masivo">Generar horarios</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="panel__cabecera"><h2>Cargar un horario suelto</h2></div>
         <form id="form-horario">
           <div id="mensaje-horario" class="mensaje"></div>
           <div class="fila-campos">
